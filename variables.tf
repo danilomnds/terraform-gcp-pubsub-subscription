@@ -30,13 +30,13 @@ variable "cloud_storage_config" {
     filename_suffix          = optional(string)
     filename_datetime_format = optional(string)
     max_duration             = optional(string)
-    max_bytes                = optional(string)
+    max_bytes                = optional(number)
     max_messages             = optional(number)
-    state                    = optional(string)
     avro_config = optional(object({
       write_metadata   = optional(bool)
       use_topic_schema = optional(bool)
     }))
+    text_config           = optional(object({}))
     service_account_email = optional(string)
   })
   default = null
@@ -49,16 +49,16 @@ variable "push_config" {
       audience              = optional(string)
     }))
     push_endpoint = string
-    attributes    = optional(string)
+    attributes    = optional(map(string))
     no_wrapper = optional(object({
-      write_metadata = string
+      write_metadata = bool
     }))
   })
   default = null
 }
 
 variable "ack_deadline_seconds" {
-  type    = string
+  type    = number
   default = null
 }
 
@@ -76,7 +76,7 @@ variable "expiration_policy" {
   type = object({
     ttl = string
   })
-  default = null
+  default = { ttl = "" }
 }
 
 variable "filter" {
@@ -112,6 +112,13 @@ variable "enable_exactly_once_delivery" {
 
 variable "message_transforms" {
   type = object({
+    ai_inference = optional(object({
+      endpoint              = string
+      service_account_email = optional(string)
+      unstructured_inference = optional(object({
+        parameters = optional(string)
+      }))
+    }))
     javascript_udf = optional(object({
       function_name = string
       code          = string
@@ -122,6 +129,16 @@ variable "message_transforms" {
 }
 
 variable "project" {
+  type    = string
+  default = null
+}
+
+variable "tags" {
+  type    = map(string)
+  default = null
+}
+
+variable "deletion_policy" {
   type    = string
   default = null
 }

@@ -1,7 +1,9 @@
 resource "google_pubsub_subscription" "subscription" {
-  name   = var.name
-  topic  = var.topic
-  labels = var.labels
+  name            = var.name
+  topic           = var.topic
+  labels          = var.labels
+  tags            = var.tags
+  deletion_policy = var.deletion_policy
   dynamic "bigquery_config" {
     for_each = var.bigquery_config != null ? [var.bigquery_config] : []
     content {
@@ -23,13 +25,16 @@ resource "google_pubsub_subscription" "subscription" {
       max_duration             = lookup(cloud_storage_config.value, "max_duration", null)
       max_bytes                = lookup(cloud_storage_config.value, "max_bytes", null)
       max_messages             = lookup(cloud_storage_config.value, "max_messages", null)
-      state                    = lookup(cloud_storage_config.value, "state", null)
       dynamic "avro_config" {
         for_each = cloud_storage_config.value.avro_config != null ? [cloud_storage_config.value.avro_config] : []
         content {
           write_metadata   = avro_config.value.write_metadata
           use_topic_schema = avro_config.value.use_topic_schema
         }
+      }
+      dynamic "text_config" {
+        for_each = lookup(cloud_storage_config.value, "text_config", null) != null ? [cloud_storage_config.value.text_config] : []
+        content {}
       }
       service_account_email = lookup(cloud_storage_config.value, "service_account_email", null)
     }
@@ -83,6 +88,20 @@ resource "google_pubsub_subscription" "subscription" {
   dynamic "message_transforms" {
     for_each = var.message_transforms != null ? [var.message_transforms] : []
     content {
+      dynamic "ai_inference" {
+        for_each = lookup(message_transforms.value, "ai_inference", null) != null ? [message_transforms.value.ai_inference] : []
+        content {
+          endpoint              = ai_inference.value.endpoint
+          service_account_email = lookup(ai_inference.value, "service_account_email", null)
+
+          dynamic "unstructured_inference" {
+            for_each = lookup(ai_inference.value, "unstructured_inference", null) != null ? [ai_inference.value.unstructured_inference] : []
+            content {
+              parameters = lookup(unstructured_inference.value, "parameters", null)
+            }
+          }
+        }
+      }
       dynamic "javascript_udf" {
         for_each = message_transforms.value.javascript_udf != null ? [message_transforms.value.javascript_udf] : []
         content {
